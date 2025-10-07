@@ -79,10 +79,29 @@ Return JSON:
       "context": "What this applies to",
       "supporting_videos": [0, 1, 2, 3]
     }
+  ],
+  "contradictions": [
+    {
+      "topic": "What experts disagree about (e.g., 'Best indicators to use')",
+      "debate_type": "approach/methodology/timing/tools",
+      "viewpoints": [
+        {
+          "position": "Description of viewpoint A",
+          "supporting_videos": [0, 2],
+          "reasoning": "Why they recommend this"
+        },
+        {
+          "position": "Description of viewpoint B",
+          "supporting_videos": [1, 3, 4],
+          "reasoning": "Why they recommend this instead"
+        }
+      ],
+      "insight": "Why this disagreement exists or what it means for learners"
+    }
   ]
 }
 
-Create 3-5 major themes. Extract 5-10 quantitative consensus points. Prioritize metrics mentioned in 3+ videos.`;
+Create 3-5 major themes. Extract 5-10 quantitative consensus points. Identify 2-4 meaningful contradictions where videos genuinely disagree.`;
 
 export async function analyzeVideos(transcripts, videos) {
   const validTranscripts = transcripts.filter(t => t && t.text);
@@ -151,12 +170,14 @@ export async function analyzeVideos(transcripts, videos) {
   console.log('   Synthesizing hierarchical consensus across videos...');
   let themes = [];
   let quantitativeConsensus = [];
+  let contradictions = [];
   let legacyConsensusPoints = [];
 
   try {
     const consensus = await synthesizeConsensus(perVideoAnalysis, videos);
     themes = consensus.themes || [];
     quantitativeConsensus = consensus.quantitative_consensus || [];
+    contradictions = consensus.contradictions || [];
     
     // Create legacy consensus_points for backward compatibility
     legacyConsensusPoints = themes.flatMap(theme => {
@@ -185,6 +206,7 @@ export async function analyzeVideos(transcripts, videos) {
     
     console.log(`   ✅ Generated ${themes.length} hierarchical themes with ${legacyConsensusPoints.length} total insights`);
     console.log(`   ✅ Extracted ${quantitativeConsensus.length} quantitative consensus metrics`);
+    console.log(`   ✅ Identified ${contradictions.length} points of debate`);
   } catch (error) {
     console.error('   ❌ Error synthesizing consensus:', error.message);
   }
@@ -192,6 +214,7 @@ export async function analyzeVideos(transcripts, videos) {
   return {
     themes: themes,  // New hierarchical structure
     quantitative_consensus: quantitativeConsensus,  // Quantitative data aggregation
+    contradictions: contradictions,  // Points of debate/disagreement
     consensus_points: legacyConsensusPoints,  // Legacy flat structure for backward compatibility
     per_video: perVideoAnalysis
   };

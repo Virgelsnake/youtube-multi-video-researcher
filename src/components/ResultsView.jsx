@@ -2,6 +2,7 @@ import React from 'react';
 import { ArrowLeft, Download } from 'lucide-react';
 import ConsensusSection from './ConsensusSection';
 import QuantitativeSection from './QuantitativeSection';
+import ContradictionsSection from './ContradictionsSection';
 import VideoCard from './VideoCard';
 import { downloadMarkdown, downloadCSV } from '../utils/downloads';
 
@@ -69,6 +70,14 @@ function ResultsView({ results, onReset }) {
       {analysis?.quantitative_consensus && analysis.quantitative_consensus.length > 0 && (
         <QuantitativeSection 
           quantitativeConsensus={analysis.quantitative_consensus}
+          videos={top5}
+        />
+      )}
+
+      {/* Contradictions Section */}
+      {analysis?.contradictions && analysis.contradictions.length > 0 && (
+        <ContradictionsSection 
+          contradictions={analysis.contradictions}
           videos={top5}
         />
       )}
