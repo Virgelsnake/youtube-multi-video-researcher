@@ -165,22 +165,59 @@ def extract_video_id(url: str):
             return m.group(1)
     return None
 
-def srt_to_text_dedupe(srt: str) -> str:
-    """Convert SRT to plain text and remove consecutive duplicates"""
+def parse_srt_with_timestamps(srt: str):
+    """Parse SRT and return structured data with timestamps"""
     lines = srt.splitlines()
-    text_lines = []
-    prev = ""
-    for ln in lines:
-        s = ln.strip()
-        # skip numbering lines and timing lines
-        if not s or s.isdigit() or '-->' in s:
+    segments = []
+    current_segment = {}
+    prev_text = ""
+    
+    i = 0
+    while i < len(lines):
+        line = lines[i].strip()
+        
+        # Skip empty lines
+        if not line:
+            i += 1
             continue
-        # collapse spacing for comparison
-        norm = re.sub(r'\s+', ' ', s).strip()
-        if norm and norm != prev:
-            text_lines.append(s)
-            prev = norm
-    return "\n".join(text_lines)
+        
+        # Check if this is a sequence number
+        if line.isdigit():
+            current_segment = {'index': int(line)}
+            i += 1
+            
+            # Next line should be timestamp
+            if i < len(lines) and '-->' in lines[i]:
+                timestamp_line = lines[i].strip()
+                # Parse timestamp: 00:00:10,500 --> 00:00:13,000
+                match = re.match(r'(\d{2}:\d{2}:\d{2}),\d+ --> (\d{2}:\d{2}:\d{2}),\d+', timestamp_line)
+                if match:
+                    current_segment['start'] = match.group(1)
+                    current_segment['end'] = match.group(2)
+                i += 1
+                
+                # Collect text lines until next empty line or sequence number
+                text_lines = []
+                while i < len(lines) and lines[i].strip() and not lines[i].strip().isdigit():
+                    text_lines.append(lines[i].strip())
+                    i += 1
+                
+                text = ' '.join(text_lines)
+                # Remove consecutive duplicates
+                norm = re.sub(r'\s+', ' ', text).strip()
+                if norm and norm != prev_text:
+                    current_segment['text'] = text
+                    segments.append(current_segment)
+                    prev_text = norm
+        else:
+            i += 1
+    
+    return segments
+
+def srt_to_text_dedupe(srt: str) -> str:
+    """Convert SRT to plain text and remove consecutive duplicates (legacy)"""
+    segments = parse_srt_with_timestamps(srt)
+    return "\n".join(seg['text'] for seg in segments if 'text' in seg)
 
 def get_transcript(url: str):
     """Download transcript from YouTube video using yt-dlp (English + variants)"""
@@ -233,8 +270,11 @@ def get_transcript(url: str):
             with open(srt_file, 'r', encoding='utf-8') as f:
                 srt_content = f.read()
 
-            # Minimal, non-intrusive fix: remove timestamps/indices and drop consecutive duplicates
-            full_transcript = srt_to_text_dedupe(srt_content)
+            # Parse SRT with timestamps
+            segments = parse_srt_with_timestamps(srt_content)
+            
+            # Also create plain text version for backward compatibility
+            full_transcript = "\n".join(seg['text'] for seg in segments if 'text' in seg)
             word_count = len(full_transcript.split()) if full_transcript else 0
 
             if not full_transcript:
@@ -243,6 +283,7 @@ def get_transcript(url: str):
             return {
                 'success': True,
                 'transcript': full_transcript,
+                'segments': segments,  # NEW: Include timestamped segments
                 'video_id': video_id,
                 'word_count': word_count
             }

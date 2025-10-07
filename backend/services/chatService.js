@@ -31,14 +31,18 @@ Your role:
 1. Answer questions based ONLY on the video content provided
 2. Always cite which video(s) your answer comes from
 3. Include specific quotes or evidence when relevant
-4. If videos disagree, mention both viewpoints
-5. If the answer isn't in the videos, say so clearly
+4. **IMPORTANT: Include timestamps when referencing specific moments** (format: [HH:MM:SS])
+5. If videos disagree, mention both viewpoints
+6. If the answer isn't in the videos, say so clearly
 
 Format your responses with:
 - Clear, concise answers
-- Citations: [Video X: Title]
+- Citations: [Video X at HH:MM:SS] or [Video X: Title]
+- Timestamps for specific claims or instructions
 - Quotes when helpful
-- Acknowledgment of disagreements or nuances`;
+- Acknowledgment of disagreements or nuances
+
+Example: "According to Video 1 at [00:03:45], they recommend risking only 1% per trade."`;
 
   // Build messages array
   const messages = [
@@ -128,10 +132,20 @@ function buildContext(transcripts, videos, insights) {
     });
   }
 
-  // Add transcript excerpts (first 500 chars from each video)
-  context += '\n=== TRANSCRIPT EXCERPTS ===\n\n';
+  // Add transcript excerpts with timestamps (first 10 segments from each video)
+  context += '\n=== TRANSCRIPT EXCERPTS (with timestamps) ===\n\n';
   transcripts.forEach((transcript, index) => {
-    if (transcript.text) {
+    if (transcript.segments && transcript.segments.length > 0) {
+      context += `Video ${index + 1} (timestamped):\n`;
+      const firstSegments = transcript.segments.slice(0, 10);
+      firstSegments.forEach(seg => {
+        if (seg.text && seg.start) {
+          context += `[${seg.start}] ${seg.text}\n`;
+        }
+      });
+      context += '\n';
+    } else if (transcript.text) {
+      // Fallback to plain text if segments not available
       const excerpt = transcript.text.substring(0, 500);
       context += `Video ${index + 1} excerpt:\n${excerpt}...\n\n`;
     }

@@ -15,9 +15,10 @@ export async function fetchTranscripts(videos, config) {
           url: video.url,
           video_id: result.video_id,
           word_count: result.word_count,
-          text: result.transcript
+          text: result.transcript,
+          segments: result.segments || []  // NEW: Store timestamped segments
         });
-        console.log(`   ✅ Got transcript (${result.word_count} words)`);
+        console.log(`   ✅ Got transcript (${result.word_count} words, ${result.segments?.length || 0} segments)`);
       } else {
         console.log(`   ❌ Failed: ${result.error}`);
         transcripts.push({
