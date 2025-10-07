@@ -56,9 +56,10 @@ function ResultsView({ results, onReset }) {
       </div>
 
       {/* Consensus Section */}
-      {analysis?.consensus_points && analysis.consensus_points.length > 0 && (
+      {(analysis?.themes?.length > 0 || analysis?.consensus_points?.length > 0) && (
         <ConsensusSection 
-          consensusPoints={analysis.consensus_points}
+          themes={analysis.themes}
+          consensusPoints={analysis.consensus_points || []}
           videos={top5}
         />
       )}
