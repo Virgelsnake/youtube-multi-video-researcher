@@ -15,25 +15,35 @@ Extract insights in THREE tiers:
 2. TACTICAL implementations (specific "how-to" steps, concrete actions)
 3. PITFALLS/WARNINGS (common mistakes, things to avoid)
 
+ALSO extract QUANTITATIVE DATA - any specific numbers, metrics, or parameters mentioned:
+- Percentages (e.g., "risk 1-2%", "65% win rate")
+- Dollar amounts (e.g., "$100 per trade", "$10,000 account")
+- Time periods (e.g., "first hour", "2-3 minutes", "30 days")
+- Ratios (e.g., "2:1 risk-reward", "1:3 ratio")
+- Counts (e.g., "3-5 trades per day", "top 10 stocks")
+- Ranges (e.g., "10-15 cents", "5-10 minutes")
+
 Return JSON with:
 {
   "strategic": [{ "principle": "...", "evidence": "short quote", "importance": "high/medium" }],
   "tactical": [{ "action": "...", "specifics": "exact parameters/steps", "evidence": "short quote" }],
   "pitfalls": [{ "warning": "...", "consequence": "what happens if ignored", "evidence": "short quote" }],
+  "quantitative": [{ "metric": "what is being measured", "value": "the number/range", "context": "what it applies to", "quote": "exact quote" }],
   "terms": ["..."]  // key terms/definitions
 }
 
-Extract 3-5 items per tier. Focus on concrete, teachable statements with specific details.`;
+Extract 3-5 items per tier. Focus on concrete, teachable statements with specific details and exact numbers.`;
 
 const CROSS_VIDEO_SYSTEM_PROMPT = `You are synthesizing insights from multiple videos into a hierarchical structure.
 
-Input: Per-video insights organized as strategic/tactical/pitfalls.
+Input: Per-video insights organized as strategic/tactical/pitfalls/quantitative.
 
 Task:
 1) Group semantically equivalent points across videos
 2) Organize into hierarchical themes with sub-points
 3) Track support_count (how many videos mention each point)
 4) Identify patterns: what strategies lead to what tactics
+5) Aggregate quantitative data: find consensus numbers, ranges, and common metrics
 
 Return JSON:
 {
@@ -59,10 +69,20 @@ Return JSON:
         }
       ]
     }
+  ],
+  "quantitative_consensus": [
+    {
+      "metric": "What is being measured (e.g., 'Risk per trade')",
+      "values": ["1%", "2%", "1-2%"],
+      "consensus": "Most common value or range",
+      "support_count": 4,
+      "context": "What this applies to",
+      "supporting_videos": [0, 1, 2, 3]
+    }
   ]
 }
 
-Create 3-5 major themes. Prioritize themes mentioned in 3+ videos.`;
+Create 3-5 major themes. Extract 5-10 quantitative consensus points. Prioritize metrics mentioned in 3+ videos.`;
 
 export async function analyzeVideos(transcripts, videos) {
   const validTranscripts = transcripts.filter(t => t && t.text);
@@ -102,6 +122,7 @@ export async function analyzeVideos(transcripts, videos) {
         strategic: analysis.strategic || [],
         tactical: analysis.tactical || [],
         pitfalls: analysis.pitfalls || [],
+        quantitative: analysis.quantitative || [],
         terms: analysis.terms || [],
         // Keep legacy highlights for backward compatibility
         highlights: [
@@ -110,7 +131,8 @@ export async function analyzeVideos(transcripts, videos) {
         ]
       });
       const totalInsights = (analysis.strategic?.length || 0) + (analysis.tactical?.length || 0) + (analysis.pitfalls?.length || 0);
-      console.log(`   ✅ Extracted ${totalInsights} insights from video ${i + 1} (${analysis.strategic?.length || 0} strategic, ${analysis.tactical?.length || 0} tactical, ${analysis.pitfalls?.length || 0} pitfalls)`);
+      const quantCount = analysis.quantitative?.length || 0;
+      console.log(`   ✅ Extracted ${totalInsights} insights from video ${i + 1} (${analysis.strategic?.length || 0} strategic, ${analysis.tactical?.length || 0} tactical, ${analysis.pitfalls?.length || 0} pitfalls, ${quantCount} metrics)`);
     } catch (error) {
       console.error(`   ❌ Error analyzing video ${i + 1}:`, error.message);
       perVideoAnalysis.push({
@@ -128,11 +150,13 @@ export async function analyzeVideos(transcripts, videos) {
   // Step 2: Synthesize hierarchical consensus across videos
   console.log('   Synthesizing hierarchical consensus across videos...');
   let themes = [];
+  let quantitativeConsensus = [];
   let legacyConsensusPoints = [];
 
   try {
     const consensus = await synthesizeConsensus(perVideoAnalysis, videos);
     themes = consensus.themes || [];
+    quantitativeConsensus = consensus.quantitative_consensus || [];
     
     // Create legacy consensus_points for backward compatibility
     legacyConsensusPoints = themes.flatMap(theme => {
@@ -160,12 +184,14 @@ export async function analyzeVideos(transcripts, videos) {
     });
     
     console.log(`   ✅ Generated ${themes.length} hierarchical themes with ${legacyConsensusPoints.length} total insights`);
+    console.log(`   ✅ Extracted ${quantitativeConsensus.length} quantitative consensus metrics`);
   } catch (error) {
     console.error('   ❌ Error synthesizing consensus:', error.message);
   }
 
   return {
     themes: themes,  // New hierarchical structure
+    quantitative_consensus: quantitativeConsensus,  // Quantitative data aggregation
     consensus_points: legacyConsensusPoints,  // Legacy flat structure for backward compatibility
     per_video: perVideoAnalysis
   };

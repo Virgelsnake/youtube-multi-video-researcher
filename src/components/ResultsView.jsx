@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowLeft, Download } from 'lucide-react';
 import ConsensusSection from './ConsensusSection';
+import QuantitativeSection from './QuantitativeSection';
 import VideoCard from './VideoCard';
 import { downloadMarkdown, downloadCSV } from '../utils/downloads';
 
@@ -60,6 +61,14 @@ function ResultsView({ results, onReset }) {
         <ConsensusSection 
           themes={analysis.themes}
           consensusPoints={analysis.consensus_points || []}
+          videos={top5}
+        />
+      )}
+
+      {/* Quantitative Section */}
+      {analysis?.quantitative_consensus && analysis.quantitative_consensus.length > 0 && (
+        <QuantitativeSection 
+          quantitativeConsensus={analysis.quantitative_consensus}
           videos={top5}
         />
       )}
