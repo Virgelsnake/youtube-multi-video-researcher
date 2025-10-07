@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { researchVideos } from './services/researchService.js';
+import { answerQuestion, generateSuggestedQuestions } from './services/chatService.js';
 
 dotenv.config();
 
@@ -38,6 +39,51 @@ app.post('/api/research', async (req, res) => {
       error: 'Research failed',
       message: error.message,
       details: error.stack
+    });
+  }
+});
+
+// Chat endpoint
+app.post('/api/chat', async (req, res) => {
+  try {
+    const { question, transcripts, videos, chatHistory, insights } = req.body;
+
+    if (!question) {
+      return res.status(400).json({ error: 'Question is required' });
+    }
+
+    if (!transcripts || !videos) {
+      return res.status(400).json({ error: 'Research data is required' });
+    }
+
+    console.log(`\n💬 Chat question: "${question}"`);
+
+    const result = await answerQuestion(question, transcripts, videos, chatHistory, insights);
+
+    console.log(`✅ Answer generated (${result.tokensUsed} tokens)`);
+    res.json(result);
+  } catch (error) {
+    console.error('❌ Chat error:', error);
+    res.status(500).json({
+      error: 'Chat failed',
+      message: error.message
+    });
+  }
+});
+
+// Suggested questions endpoint
+app.post('/api/chat/suggestions', async (req, res) => {
+  try {
+    const { query, insights, videos } = req.body;
+
+    const suggestions = generateSuggestedQuestions(query, insights || {}, videos || []);
+
+    res.json({ suggestions });
+  } catch (error) {
+    console.error('❌ Suggestions error:', error);
+    res.status(500).json({
+      error: 'Failed to generate suggestions',
+      message: error.message
     });
   }
 });

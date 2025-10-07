@@ -3,6 +3,7 @@ import { ArrowLeft, Download } from 'lucide-react';
 import ConsensusSection from './ConsensusSection';
 import QuantitativeSection from './QuantitativeSection';
 import ContradictionsSection from './ContradictionsSection';
+import ChatInterface from './ChatInterface';
 import VideoCard from './VideoCard';
 import { downloadMarkdown, downloadCSV } from '../utils/downloads';
 
@@ -98,6 +99,9 @@ function ResultsView({ results, onReset }) {
           ))}
         </div>
       </div>
+
+      {/* Chat Interface */}
+      <ChatInterface results={results} />
     </div>
   );
 }
